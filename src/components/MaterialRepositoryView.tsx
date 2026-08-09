@@ -188,7 +188,8 @@ export const MaterialRepositoryView: React.FC<Props> = ({
   };
 
   const filteredMaterials = useMemo(() => {
-    let result = materials;
+    // Work on a copy so sorting never mutates the parent-owned state array.
+    let result = [...materials];
 
     if (search.trim()) {
       const lowerSearch = search.toLowerCase();

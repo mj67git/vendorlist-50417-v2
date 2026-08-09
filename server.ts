@@ -16,6 +16,18 @@ import {
   vendorAnalysisSchema,
   vendorRiskSchema
 } from "./src/utils/validation.js";
+import {
+  CALCULATION_WEIGHTS,
+  GRADE_TIERS,
+  calculateRoundedWeightedScore,
+  calculateWeightedScore,
+  rankVendor,
+} from "./src/server/domain/vendorEvaluation.js";
+import {
+  generateSalt,
+  hashPassword,
+  verifyPassword,
+} from "./src/server/security/passwordService.js";
 
 const dbPath = path.join(process.cwd(), "database", "vendors.json");
 
@@ -85,20 +97,6 @@ let relationalDb: RelationalModel = {
   contacts: {}
 };
 
-const CALCULATION_WEIGHTS = {
-  commercial: 0.2,
-  qa: 0.4,
-  planning: 0.1,
-  finance: 0.3
-};
-
-const GRADE_TIERS = [
-  { min: 80, grade: "A", status: "approved" },
-  { min: 60, grade: "B", status: "approved" },
-  { min: 40, grade: "C", status: "conditional" },
-  { min: 0, grade: "black list", status: "rejected" }
-];
-
 function recalculateVendorGradeAndStatus(id: string) {
   const v = relationalDb.vendors[id];
   if (!v) return;
@@ -133,12 +131,7 @@ function recalculateVendorGradeAndStatus(id: string) {
   const scores = evalData.scores;
   const isFullyScored = scores.commercial > 0 && scores.qa > 0 && scores.planning > 0 && scores.finance > 0;
   if (isFullyScored) {
-    const overall = 
-      ((scores.commercial || 0) * CALCULATION_WEIGHTS.commercial) +
-      ((scores.qa || 0) * CALCULATION_WEIGHTS.qa) +
-      ((scores.planning || 0) * CALCULATION_WEIGHTS.planning) +
-      ((scores.finance || 0) * CALCULATION_WEIGHTS.finance);
-    const rounded = Math.round(overall);
+    const rounded = calculateRoundedWeightedScore(scores, CALCULATION_WEIGHTS);
 
     let calcGrade = v.grade;
     let calcStatus = v.status;
@@ -159,25 +152,7 @@ function recalculateVendorGradeAndStatus(id: string) {
 }
 
 function getVendorRank(vendorId: string, allVendors: any[]): number {
-  const target = allVendors.find((v: any) => v.id === vendorId);
-  if (!target) return 0;
-  const isSample = !!(target.isSample || target.category === 'sample');
-
-  const peers = allVendors.filter((v: any) => !!(v.isSample || v.category === 'sample') === isSample);
-
-  const scoredPeers = peers.map((p: any) => {
-    const s = p.scores || {};
-    const overall = 
-      ((s.commercial || 0) * CALCULATION_WEIGHTS.commercial) +
-      ((s.qa || 0) * CALCULATION_WEIGHTS.qa) +
-      ((s.planning || 0) * CALCULATION_WEIGHTS.planning) +
-      ((s.finance || 0) * CALCULATION_WEIGHTS.finance);
-    return { id: p.id, score: Math.round(overall * 10) / 10 };
-  });
-
-  scoredPeers.sort((a, b) => b.score - a.score);
-  const idx = scoredPeers.findIndex(p => p.id === vendorId);
-  return idx >= 0 ? idx + 1 : 0;
+  return rankVendor(vendorId, allVendors, CALCULATION_WEIGHTS);
 }
 
 function parseDateSafely(dateStr: any): Date {
@@ -294,12 +269,7 @@ function partitionVendor(v: any) {
   // 4. Map Periodic Evaluations to proper relational table structure
   const evalId = `eval_${id}_${materialId}`;
   const scoreObj = scores || { commercial: 0, qa: 0, planning: 0, finance: 0 };
-  const overall = 
-    ((scoreObj.commercial || 0) * CALCULATION_WEIGHTS.commercial) +
-    ((scoreObj.qa || 0) * CALCULATION_WEIGHTS.qa) +
-    ((scoreObj.planning || 0) * CALCULATION_WEIGHTS.planning) +
-    ((scoreObj.finance || 0) * CALCULATION_WEIGHTS.finance);
-  const rounded = Math.round(overall);
+  const rounded = calculateRoundedWeightedScore(scoreObj, CALCULATION_WEIGHTS);
 
   relationalDb.evaluations[evalId] = {
     id: evalId,
@@ -581,12 +551,7 @@ async function saveVendorToDb(v: any): Promise<boolean> {
     const rejectText = rejectionReasons ? JSON.stringify(rejectionReasons) : null;
 
     const scoreObj = scores || { commercial: 0, qa: 0, planning: 0, finance: 0 };
-    const overall = 
-      ((scoreObj.commercial || 0) * CALCULATION_WEIGHTS.commercial) +
-      ((scoreObj.qa || 0) * CALCULATION_WEIGHTS.qa) +
-      ((scoreObj.planning || 0) * CALCULATION_WEIGHTS.planning) +
-      ((scoreObj.finance || 0) * CALCULATION_WEIGHTS.finance);
-    const roundedTotal = Math.round(overall);
+    const roundedTotal = calculateRoundedWeightedScore(scoreObj, CALCULATION_WEIGHTS);
 
     await prisma.vendor.upsert({
       where: { id },
@@ -855,14 +820,6 @@ let USERS_DB: Record<string, any> = {
   finance: { username: "finance", password: "123", role: "finance", name: "واحد مالی" },
 };
 
-function hashPassword(password: string, salt: string): string {
-  return crypto.pbkdf2Sync(password, salt, 1000, 64, "sha512").toString("hex");
-}
-
-function generateSalt(): string {
-  return crypto.randomBytes(16).toString("hex");
-}
-
 function loadUsersDb() {
   try {
     if (fs.existsSync(usersDbPath)) {
@@ -1017,13 +974,7 @@ async function startServer() {
       return res.status(401).json({ error: "Incorrect username or password. Please try again." });
     }
 
-    let isPasswordCorrect = false;
-    if (typeof matchedUser.password === "string") {
-      isPasswordCorrect = (matchedUser.password === password);
-    } else if (matchedUser.password && typeof matchedUser.password === "object") {
-      const { hash, salt } = matchedUser.password;
-      isPasswordCorrect = (hashPassword(password, salt) === hash);
-    }
+    const isPasswordCorrect = verifyPassword(password, matchedUser.password);
 
     if (!isPasswordCorrect) {
       AuditService.createAuditRecord({
@@ -1148,13 +1099,7 @@ async function startServer() {
       return res.status(404).json({ error: "کاربر یافت نشد" });
     }
 
-    let isCurrentPasswordCorrect = false;
-    if (typeof matchedUser.password === "string") {
-      isCurrentPasswordCorrect = (matchedUser.password === currentPassword);
-    } else if (matchedUser.password && typeof matchedUser.password === "object") {
-      const { hash, salt } = matchedUser.password;
-      isCurrentPasswordCorrect = (hashPassword(currentPassword, salt) === hash);
-    }
+    const isCurrentPasswordCorrect = verifyPassword(currentPassword, matchedUser.password);
 
     if (!isCurrentPasswordCorrect) {
       return res.status(400).json({ error: "کلمه عبور فعلی وارد شده نادرست است" });
@@ -1528,12 +1473,9 @@ async function startServer() {
       const prevRank = getVendorRank(id, allVendorsBefore);
 
       const prevScores = current.scores || { commercial: 0, qa: 0, planning: 0, finance: 0 };
-      const prevSPS = Math.round((
-        ((prevScores.commercial || 0) * CALCULATION_WEIGHTS.commercial) +
-        ((prevScores.qa || 0) * CALCULATION_WEIGHTS.qa) +
-        ((prevScores.planning || 0) * CALCULATION_WEIGHTS.planning) +
-        ((prevScores.finance || 0) * CALCULATION_WEIGHTS.finance)
-      ) * 10) / 10;
+      const prevSPS = Math.round(
+        calculateWeightedScore(prevScores, CALCULATION_WEIGHTS) * 10,
+      ) / 10;
       const prevGrade = current.grade || 'unrated';
 
       const updatedVendor = {
@@ -1546,12 +1488,7 @@ async function startServer() {
       // Calculate grade automatically based on newly patched scores
       if (updatedVendor.scores) {
         const scoreObj = updatedVendor.scores;
-        const overall = 
-          ((scoreObj.commercial || 0) * CALCULATION_WEIGHTS.commercial) +
-          ((scoreObj.qa || 0) * CALCULATION_WEIGHTS.qa) +
-          ((scoreObj.planning || 0) * CALCULATION_WEIGHTS.planning) +
-          ((scoreObj.finance || 0) * CALCULATION_WEIGHTS.finance);
-        const rounded = Math.round(overall);
+        const rounded = calculateRoundedWeightedScore(scoreObj, CALCULATION_WEIGHTS);
 
         let calcGrade = updatedVendor.grade;
         let calcStatus = updatedVendor.status;
@@ -1581,12 +1518,9 @@ async function startServer() {
       const newRank = getVendorRank(id, allVendorsAfter);
 
       const newScores = result.scores || { commercial: 0, qa: 0, planning: 0, finance: 0 };
-      const newSPS = Math.round((
-        ((newScores.commercial || 0) * CALCULATION_WEIGHTS.commercial) +
-        ((newScores.qa || 0) * CALCULATION_WEIGHTS.qa) +
-        ((newScores.planning || 0) * CALCULATION_WEIGHTS.planning) +
-        ((newScores.finance || 0) * CALCULATION_WEIGHTS.finance)
-      ) * 10) / 10;
+      const newSPS = Math.round(
+        calculateWeightedScore(newScores, CALCULATION_WEIGHTS) * 10,
+      ) / 10;
 
       // Audit Trail Integration
       const isSource = !!(result.isSample || result.category === 'sample' || current.isSample || current.category === 'sample');

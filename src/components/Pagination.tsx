@@ -35,6 +35,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           type="button"
           disabled={currentPage === 1}
+          aria-label="صفحه قبل"
           onClick={() => onPageChange(currentPage - 1)}
           className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
           title="صفحه قبل"
@@ -55,6 +56,8 @@ export const Pagination: React.FC<PaginationProps> = ({
             <button
               key={p}
               type="button"
+              aria-label={`صفحه ${p}`}
+              aria-current={currentPage === p ? 'page' : undefined}
               onClick={() => onPageChange(p)}
               className={`w-8 h-8 rounded-xl font-bold font-mono transition-all cursor-pointer ${
                 currentPage === p
@@ -70,6 +73,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           type="button"
           disabled={currentPage === totalPages}
+          aria-label="صفحه بعد"
           onClick={() => onPageChange(currentPage + 1)}
           className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
           title="صفحه بعد"

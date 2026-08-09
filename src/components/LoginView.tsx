@@ -62,13 +62,14 @@ export function LoginView({ onLogin }: LoginViewProps) {
             <h1 className="text-lg font-bold text-[#1D1D1F] mb-1.5 leading-snug tracking-tight">Vendor List & Supplier Evaluation System</h1>
             <p className="text-cyan-600 font-mono text-[11px] font-semibold uppercase tracking-wider">Vendor Management Portal</p>
          </div>
-         <form onSubmit={handleLogin} className="space-y-4">
-            {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs leading-relaxed">{error}</div>}
+         <form onSubmit={handleLogin} className="space-y-4" aria-busy={loading}>
+            {error && <div role="alert" aria-live="polite" className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs leading-relaxed">{error}</div>}
             <div>
-               <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Username</label>
+               <label htmlFor="username_input" className="block text-xs font-semibold text-[#1D1D1F] mb-1">Username</label>
                <input 
                  id="username_input"
-                 type="text" 
+                 type="text"
+                 autoComplete="username"
                  disabled={loading}
                  value={username} 
                  onChange={e=>setUsername(e.target.value)} 
@@ -78,10 +79,11 @@ export function LoginView({ onLogin }: LoginViewProps) {
                />
             </div>
             <div>
-               <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Password</label>
+               <label htmlFor="password_input" className="block text-xs font-semibold text-[#1D1D1F] mb-1">Password</label>
                <input 
                  id="password_input"
-                 type="password" 
+                 type="password"
+                 autoComplete="current-password"
                  disabled={loading}
                  value={password} 
                  onChange={e=>setPassword(e.target.value)} 
