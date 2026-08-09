@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Vendor-List-50417-v2-050518",
+  "description": "Vendor list application that allows me to categorize and manage supplier contracts efficiently.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

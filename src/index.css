@@ -1,0 +1,221 @@
+@import "tailwindcss";
+@import "vazirmatn/misc/Farsi-Digits/Vazirmatn-FD-font-face.css";
+
+@theme {
+  --font-sans: "Vazirmatn FD", system-ui, sans-serif;
+  --font-mono: "Vazirmatn FD", ui-monospace, Courier, monospace;
+
+  /* Color System */
+  --color-background: var(--bg-color);
+  --color-surface: var(--surface-color);
+  
+  --color-border: var(--border-color);
+  --color-border-hover: var(--border-hover-color);
+
+  --color-foreground: var(--text-primary);
+  --color-muted-foreground: var(--text-secondary);
+
+  --color-primary: var(--primary-main);
+  --color-primary-foreground: var(--primary-content);
+  --color-primary-hover: var(--primary-hover);
+
+  --color-secondary: var(--secondary-main);
+  --color-secondary-foreground: var(--secondary-content);
+
+  --color-success: var(--success-main);
+  --color-success-foreground: var(--success-content);
+
+  --color-warning: var(--warning-main);
+  --color-warning-foreground: var(--warning-content);
+
+  --color-danger: var(--danger-main);
+  --color-danger-foreground: var(--danger-content);
+
+  --color-info: var(--info-main);
+  --color-info-foreground: var(--info-content);
+
+  /* Spacing */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+}
+
+:root {
+  /* LIGHT THEME (Enterprise SaaS) */
+  --bg-color: #F8FAFC;       /* Soft Neutral */
+  --surface-color: #FFFFFF;  /* White */
+  
+  --border-color: #E2E8F0;   /* Subtle Gray */
+  --border-hover-color: #CBD5E1;
+
+  --text-primary: #0F172A;   /* Dark Neutral */
+  --text-secondary: #64748B; /* Muted Gray */
+
+  --primary-main: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-content: #FFFFFF;
+
+  --secondary-main: #F1F5F9;
+  --secondary-content: #334155;
+
+  --success-main: #10B981;
+  --success-content: #FFFFFF;
+
+  --warning-main: #F59E0B;
+  --warning-content: #FFFFFF;
+
+  --danger-main: #EF4444;
+  --danger-content: #FFFFFF;
+
+  --info-main: #3B82F6;
+  --info-content: #FFFFFF;
+}
+
+.dark {
+  /* DARK THEME (True Professional) */
+  --bg-color: #0F172A;       /* Deep Navy / Charcoal */
+  --surface-color: #1E293B;  /* Dark Neutral */
+  
+  --border-color: #334155;   /* Low Contrast */
+  --border-hover-color: #475569;
+
+  --text-primary: #F8FAFC;   /* High Contrast */
+  --text-secondary: #94A3B8; /* Muted */
+
+  --primary-main: #3B82F6;
+  --primary-hover: #60A5FA;
+  --primary-content: #FFFFFF;
+
+  --secondary-main: #334155;
+  --secondary-content: #E2E8F0;
+
+  --success-main: #10B981;
+  --success-content: #FFFFFF;
+
+  --warning-main: #F59E0B;
+  --warning-content: #FFFFFF;
+
+  --danger-main: #EF4444;
+  --danger-content: #FFFFFF;
+
+  --info-main: #3B82F6;
+  --info-content: #FFFFFF;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "ss02";
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  button, a, tr, .card, [role="button"], input, select, textarea {
+    @apply transition-all duration-200 ease-in-out;
+  }
+}
+
+/* 
+ * MOTION SYSTEM 
+ * subtle, fast, professional animations
+ */
+@layer utilities {
+  .page-enter {
+    animation: fadeSlide 250ms ease forwards;
+  }
+  .fade-in {
+    animation: fadeIn 200ms ease forwards;
+  }
+  .slide-in-drawer {
+    animation: slideIn 250ms ease forwards;
+  }
+  .dialog-enter {
+    animation: fadeScale 200ms ease forwards;
+  }
+  .toast-enter {
+    animation: fadeSlideUp 250ms ease forwards;
+  }
+
+  /* Scrollbar override */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-hover-color);
+    border-radius: 999px;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRtl {
+  from { opacity: 0; transform: translateX(-100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Range slider thumb - updated with new colors */
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border-color);
+  border-radius: 999px;
+  height: 4px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--surface-color);
+  box-shadow: 0 1px 4px rgba(15,23,42,0.2);
+  background: currentColor;
+}
+input[type=range]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--surface-color);
+  box-shadow: 0 1px 4px rgba(15,23,42,0.2);
+  background: currentColor;
+}
+
+
