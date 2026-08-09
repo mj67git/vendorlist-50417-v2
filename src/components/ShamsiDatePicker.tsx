@@ -140,12 +140,25 @@ export const ShamsiDatePicker: React.FC<ShamsiDatePickerProps> = ({
   const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const emptyDaysArray = Array.from({ length: startDayIndex }, (_, i) => i);
 
+  const handleTriggerKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (disabled || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    setIsOpen(previous => !previous);
+  };
+
   return (
     <div className="relative inline-block w-full" ref={containerRef} dir="rtl">
       {/* Input Field */}
       <div 
         className={`flex items-center justify-between w-full bg-white border border-slate-250 rounded-xl px-3 py-2 cursor-pointer
           ${disabled ? 'opacity-50 cursor-not-allowed bg-slate-50' : 'hover:border-indigo-300'} transition-all`}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        aria-label={value ? `تاریخ انتخاب‌شده ${value}` : placeholder}
+        onKeyDown={handleTriggerKeyDown}
         onClick={() => !disabled && setIsOpen(!isOpen)}
       >
         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -165,6 +178,7 @@ export const ShamsiDatePicker: React.FC<ShamsiDatePickerProps> = ({
         {value && !disabled && (
           <button
             type="button"
+            aria-label="پاک کردن تاریخ"
             onClick={(e) => {
               e.stopPropagation();
               onChange('');
@@ -185,11 +199,14 @@ export const ShamsiDatePicker: React.FC<ShamsiDatePickerProps> = ({
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
             className="absolute top-full right-0 mt-2 z-50 bg-white border border-slate-250 shadow-[0_4px_24px_rgba(15,23,42,0.08)] rounded-2xl p-4 w-72 origin-top"
+            role="dialog"
+            aria-label="انتخاب تاریخ شمسی"
           >
             {/* Header (Moth & Year Setup) */}
             <div className="flex items-center justify-between mb-4">
               <button 
-                type="button" 
+                type="button"
+                aria-label="ماه بعد"
                 onClick={handleNextMonth}
                 className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
               >
@@ -232,7 +249,8 @@ export const ShamsiDatePicker: React.FC<ShamsiDatePickerProps> = ({
               </div>
               
               <button 
-                type="button" 
+                type="button"
+                aria-label="ماه قبل"
                 onClick={handlePrevMonth}
                 className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
               >
@@ -272,6 +290,8 @@ export const ShamsiDatePicker: React.FC<ShamsiDatePickerProps> = ({
                   <button
                     key={day}
                     type="button"
+                    aria-label={`انتخاب تاریخ ${thisDate}`}
+                    aria-pressed={isSelected}
                     onClick={() => handleDayClick(day)}
                     className={`
                       h-10 w-full flex flex-col items-center justify-center rounded-lg font-mono transition-all relative

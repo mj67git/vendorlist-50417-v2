@@ -53,7 +53,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <h4 className="text-sm font-semibold text-[var(--color-foreground)]">{t.title}</h4>
               {t.description && <p className="text-sm text-[var(--color-muted-foreground)] mt-1">{t.description}</p>}
             </div>
-            <button 
+            <button
+              type="button"
+              aria-label="بستن اعلان"
               onClick={() => removeToast(t.id)} 
               className="ml-4 shrink-0 text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors"
             >

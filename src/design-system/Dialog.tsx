@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId } from 'react';
 import { cn } from './utils';
 
 interface DialogProps {
@@ -12,6 +12,9 @@ interface DialogProps {
 }
 
 export function Dialog({ isOpen, onClose, title, description, children, footer, className }: DialogProps) {
+  const titleId = useId();
+  const descriptionId = useId();
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -39,10 +42,12 @@ export function Dialog({ isOpen, onClose, title, description, children, footer, 
         )}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
       >
         <div className="p-6 border-b border-[var(--color-border)]">
-          <h2 className="text-lg font-semibold text-[var(--color-foreground)]">{title}</h2>
-          {description && <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">{description}</p>}
+          <h2 id={titleId} className="text-lg font-semibold text-[var(--color-foreground)]">{title}</h2>
+          {description && <p id={descriptionId} className="mt-1 text-sm text-[var(--color-muted-foreground)]">{description}</p>}
         </div>
         
         <div className="p-6">

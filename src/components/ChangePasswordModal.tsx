@@ -123,16 +123,18 @@ export function ChangePasswordModal({
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold leading-relaxed flex items-start gap-2">
+                <div role="alert" aria-live="polite" className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold leading-relaxed flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
               )}
 
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">کلمه عبور فعلی (پیش‌فرض)</label>
+                <label htmlFor="current_password_input" className="block text-xs font-bold text-slate-700">کلمه عبور فعلی (پیش‌فرض)</label>
                 <div className="relative">
                   <input
+                    id="current_password_input"
+                    autoComplete="current-password"
                     type={showCurrent ? 'text' : 'password'}
                     required
                     disabled={loading}
@@ -143,6 +145,7 @@ export function ChangePasswordModal({
                   />
                   <button
                     type="button"
+                    aria-label={showCurrent ? 'پنهان کردن کلمه عبور فعلی' : 'نمایش کلمه عبور فعلی'}
                     onClick={() => setShowCurrent(!showCurrent)}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
@@ -152,9 +155,11 @@ export function ChangePasswordModal({
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">کلمه عبور جدید</label>
+                <label htmlFor="new_password_input" className="block text-xs font-bold text-slate-700">کلمه عبور جدید</label>
                 <div className="relative">
                   <input
+                    id="new_password_input"
+                    autoComplete="new-password"
                     type={showNew ? 'text' : 'password'}
                     required
                     disabled={loading}
@@ -165,6 +170,7 @@ export function ChangePasswordModal({
                   />
                   <button
                     type="button"
+                    aria-label={showNew ? 'پنهان کردن کلمه عبور جدید' : 'نمایش کلمه عبور جدید'}
                     onClick={() => setShowNew(!showNew)}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
@@ -174,9 +180,11 @@ export function ChangePasswordModal({
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">تکرار کلمه عبور جدید</label>
+                <label htmlFor="confirm_password_input" className="block text-xs font-bold text-slate-700">تکرار کلمه عبور جدید</label>
                 <div className="relative">
                   <input
+                    id="confirm_password_input"
+                    autoComplete="new-password"
                     type={showConfirm ? 'text' : 'password'}
                     required
                     disabled={loading}
@@ -187,6 +195,7 @@ export function ChangePasswordModal({
                   />
                   <button
                     type="button"
+                    aria-label={showConfirm ? 'پنهان کردن تکرار کلمه عبور' : 'نمایش تکرار کلمه عبور'}
                     onClick={() => setShowConfirm(!showConfirm)}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
@@ -223,8 +232,15 @@ export function ChangePasswordModal({
   // Otherwise, render as a Standard Overlay Modal
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 font-sans" dir="rtl">
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-[0_20px_50px_rgba(0,0,0,0.15)] fade-in relative">
+      <div
+        className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-[0_20px_50px_rgba(0,0,0,0.15)] fade-in relative"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="change-password-title"
+      >
         <button
+          type="button"
+          aria-label="بستن پنجره تغییر رمز عبور"
           onClick={onClose}
           disabled={loading}
           className="absolute top-4 left-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 border border-slate-200 transition-colors cursor-pointer"
@@ -237,7 +253,7 @@ export function ChangePasswordModal({
             <Key className="w-5 h-5 text-indigo-600" />
           </div>
           <div className="text-right">
-            <h3 className="text-base font-extrabold text-slate-800">تغییر رمز عبور</h3>
+            <h3 id="change-password-title" className="text-base font-extrabold text-slate-800">تغییر رمز عبور</h3>
             <p className="text-[11px] text-slate-400 mt-0.5">بروزرسانی اطلاعات امنیتی حساب کاربری</p>
           </div>
         </div>
@@ -253,16 +269,18 @@ export function ChangePasswordModal({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold leading-relaxed flex items-start gap-2">
+              <div role="alert" aria-live="polite" className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold leading-relaxed flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
             )}
 
             <div className="space-y-1 text-right">
-              <label className="block text-xs font-bold text-slate-700">کلمه عبور فعلی</label>
+              <label htmlFor="current_password_input" className="block text-xs font-bold text-slate-700">کلمه عبور فعلی</label>
               <div className="relative">
                 <input
+                  id="current_password_input"
+                  autoComplete="current-password"
                   type={showCurrent ? 'text' : 'password'}
                   required
                   disabled={loading}
@@ -273,6 +291,7 @@ export function ChangePasswordModal({
                 />
                 <button
                   type="button"
+                  aria-label={showCurrent ? 'پنهان کردن کلمه عبور فعلی' : 'نمایش کلمه عبور فعلی'}
                   onClick={() => setShowCurrent(!showCurrent)}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
@@ -282,9 +301,11 @@ export function ChangePasswordModal({
             </div>
 
             <div className="space-y-1 text-right">
-              <label className="block text-xs font-bold text-slate-700">کلمه عبور جدید</label>
+              <label htmlFor="new_password_input" className="block text-xs font-bold text-slate-700">کلمه عبور جدید</label>
               <div className="relative">
                 <input
+                  id="new_password_input"
+                  autoComplete="new-password"
                   type={showNew ? 'text' : 'password'}
                   required
                   disabled={loading}
@@ -295,6 +316,7 @@ export function ChangePasswordModal({
                 />
                 <button
                   type="button"
+                  aria-label={showNew ? 'پنهان کردن کلمه عبور جدید' : 'نمایش کلمه عبور جدید'}
                   onClick={() => setShowNew(!showNew)}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
@@ -304,9 +326,11 @@ export function ChangePasswordModal({
             </div>
 
             <div className="space-y-1 text-right">
-              <label className="block text-xs font-bold text-slate-700">تکرار کلمه عبور جدید</label>
+              <label htmlFor="confirm_password_input" className="block text-xs font-bold text-slate-700">تکرار کلمه عبور جدید</label>
               <div className="relative">
                 <input
+                  id="confirm_password_input"
+                  autoComplete="new-password"
                   type={showConfirm ? 'text' : 'password'}
                   required
                   disabled={loading}
@@ -317,6 +341,7 @@ export function ChangePasswordModal({
                 />
                 <button
                   type="button"
+                  aria-label={showConfirm ? 'پنهان کردن تکرار کلمه عبور' : 'نمایش تکرار کلمه عبور'}
                   onClick={() => setShowConfirm(!showConfirm)}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >

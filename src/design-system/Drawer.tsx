@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId } from 'react';
 import { cn } from './utils';
 
 interface DrawerProps {
@@ -12,6 +12,8 @@ interface DrawerProps {
 }
 
 export function Drawer({ isOpen, onClose, title, children, footer, side = 'right', className }: DrawerProps) {
+  const titleId = useId();
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -40,10 +42,13 @@ export function Drawer({ isOpen, onClose, title, children, footer, side = 'right
         )}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={titleId}
       >
         <div className="flex items-center justify-between p-6 border-b border-[var(--color-border)]">
-          <h2 className="text-lg font-semibold text-[var(--color-foreground)]">{title}</h2>
-          <button 
+          <h2 id={titleId} className="text-lg font-semibold text-[var(--color-foreground)]">{title}</h2>
+          <button
+            type="button"
+            aria-label="بستن پنل"
             onClick={onClose}
             className="rounded-full p-2 hover:bg-[var(--color-secondary)] transition-colors text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
           >

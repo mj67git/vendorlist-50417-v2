@@ -25,6 +25,7 @@ import {
   validateSupplierEvaluation 
 } from '../utils/sopEvaluation';
 import { Pagination } from './Pagination';
+import { openDocumentPreview } from '../utils/documentPreview';
 
 interface Props {
   partners: BusinessPartner[];
@@ -419,23 +420,7 @@ export const BusinessPartnerRepositoryView: React.FC<Props> = ({
   };
 
   const handleDocFileView = (doc: SOPDocumentEval) => {
-    if (!doc.fileDataUrl) return;
-    const win = window.open();
-    if (win) {
-      win.document.write(`
-        <html>
-          <head><title>${doc.fileName || 'SOP Document'}</title></head>
-          <body style="margin:0; background:#0f172a; display:flex; align-items:center; justify-content:center; height:100vh; color:#fff; font-family:sans-serif;">
-            ${doc.fileDataUrl.startsWith('data:image/') 
-              ? `<img src="${doc.fileDataUrl}" style="max-width:100%; max-height:100vh; object-fit:contain;" />`
-              : `<iframe src="${doc.fileDataUrl}" style="width:100%; height:100vh; border:none;"></iframe>`
-            }
-          </body>
-        </html>
-      `);
-    } else {
-      handleDocFileDownload(doc);
-    }
+    openDocumentPreview(doc, () => handleDocFileDownload(doc));
   };
 
   const handleDocFileDownload = (doc: SOPDocumentEval) => {
