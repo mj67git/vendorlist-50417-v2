@@ -812,16 +812,31 @@ function saveDb() {
 const JWT_SECRET = process.env.JWT_SECRET || "internal-regulatory-compliance-secret-key-321";
 
 const usersDbPath = path.join(process.cwd(), "database", "users.json");
+const firstRunMarkerPath = path.join(process.cwd(), "database", ".users_initialized");
+
+// Generate a cryptographically secure random password
+function generateSecurePassword(length: number = 16): string {
+  const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+  const randomBytes = crypto.randomBytes(length);
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += charset[randomBytes[i] % charset.length];
+  }
+  return password;
+}
+
 let USERS_DB: Record<string, any> = {
-  admin: { username: "admin", password: "123456", role: "admin", name: "مدیر سیستم" },
-  commercial: { username: "commercial", password: "123", role: "commercial", name: "واحد بازرگانی" },
-  qa: { username: "qa", password: "123", role: "qa", name: "واحد کیفیت" },
-  planning: { username: "planning", password: "123", role: "planning", name: "واحد برنامه‌ریزی و انبار" },
-  finance: { username: "finance", password: "123", role: "finance", name: "واحد مالی" },
+  admin: { username: "admin", password: "PLACEHOLDER", role: "admin", name: "مدیر سیستم" },
+  commercial: { username: "commercial", password: "PLACEHOLDER", role: "commercial", name: "واحد بازرگانی" },
+  qa: { username: "qa", password: "PLACEHOLDER", role: "qa", name: "واحد کیفیت" },
+  planning: { username: "planning", password: "PLACEHOLDER", role: "planning", name: "واحد برنامه‌ریزی و انبار" },
+  finance: { username: "finance", password: "PLACEHOLDER", role: "finance", name: "واحد مالی" },
 };
 
 function loadUsersDb() {
   try {
+    const isFirstRun = !fs.existsSync(usersDbPath) && !fs.existsSync(firstRunMarkerPath);
+    
     if (fs.existsSync(usersDbPath)) {
       const data = fs.readFileSync(usersDbPath, "utf-8");
       USERS_DB = JSON.parse(data);
@@ -829,20 +844,40 @@ function loadUsersDb() {
     
     // Migrate plain-text passwords to hashed passwords and initialize mustChangePassword flags
     let modified = false;
+    const knownDefaultPasswords = ["123", "123456", "password", "admin", "PLACEHOLDER"];
+    
     for (const key of Object.keys(USERS_DB)) {
       const user = USERS_DB[key];
       
-      // If password is still a plain text string, hash it
+      // If password is still a plain text string, check if it's a known default
       if (typeof user.password === "string") {
-        const salt = generateSalt();
-        const hash = hashPassword(user.password, salt);
-        user.password = { hash, salt };
+        const isKnownDefault = knownDefaultPasswords.includes(user.password);
         
-        // Plain text defaults must change password on first login
-        if (user.mustChangePassword === undefined) {
+        if (isKnownDefault || isFirstRun) {
+          // Generate a secure random password for default accounts on first run
+          const newSecurePassword = generateSecurePassword(16);
+          const salt = generateSalt();
+          const hash = hashPassword(newSecurePassword, salt);
+          user.password = { hash, salt };
           user.mustChangePassword = true;
+          modified = true;
+          
+          // Log the new secure password to console for admin to retrieve
+          console.warn(`[SECURITY] Default password detected for user '${user.username}'.`);
+          console.warn(`[SECURITY] New secure password generated: ${newSecurePassword}`);
+          console.warn(`[SECURITY] User MUST change this password on first login.`);
+          console.warn(`[SECURITY] This password will not be displayed again. Please save it securely.`);
+        } else {
+          // Hash custom plaintext password
+          const salt = generateSalt();
+          const hash = hashPassword(user.password, salt);
+          user.password = { hash, salt };
+          
+          if (user.mustChangePassword === undefined) {
+            user.mustChangePassword = true;
+          }
+          modified = true;
         }
-        modified = true;
       }
       
       // Ensure mustChangePassword flag is explicitly set if missing
@@ -854,6 +889,14 @@ function loadUsersDb() {
     
     if (modified) {
       saveUsersDb();
+      // Create first run marker to prevent regenerating passwords on restart
+      if (isFirstRun) {
+        try {
+          fs.writeFileSync(firstRunMarkerPath, new Date().toISOString(), "utf-8");
+        } catch (err: any) {
+          console.warn("[UsersDB] Failed to create first run marker:", err.message);
+        }
+      }
     }
   } catch (err: any) {
     console.warn("[UsersDB] Failed loading or migrating users db:", err.message);
@@ -884,6 +927,27 @@ function requireAuth(req: any, res: any, next: any) {
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
+    
+    // Enforce mustChangePassword flag - block access to all APIs except change-password
+    const username = decoded.username?.toLowerCase();
+    if (username && USERS_DB[username]) {
+      const user = USERS_DB[username];
+      const mustChangePassword = user.mustChangePassword !== false;
+      
+      // Allow access to change-password and auth/me endpoints even when password change is required
+      const isPasswordChangeEndpoint = req.path === "/api/auth/change-password";
+      const isAuthMeEndpoint = req.path === "/api/auth/me";
+      const isLogoutEndpoint = req.path === "/api/auth/logout";
+      
+      if (mustChangePassword && !isPasswordChangeEndpoint && !isAuthMeEndpoint && !isLogoutEndpoint) {
+        return res.status(403).json({ 
+          error: "Password change required: You must change your password before accessing the system",
+          mustChangePassword: true,
+          code: "PASSWORD_CHANGE_REQUIRED"
+        });
+      }
+    }
+    
     next();
   } catch (err) {
     return res.status(403).json({ error: "Access Denied: Session integrity verification failed" });
@@ -1000,14 +1064,14 @@ async function startServer() {
       return res.status(401).json({ error: "Incorrect username or password. Please try again." });
     }
 
+    const mustChangePassword = matchedUser.mustChangePassword !== false;
+
     // Sign the JWT securely
     const token = jwt.sign(
       { username: matchedUser.username, role: matchedUser.role, name: matchedUser.name },
       JWT_SECRET,
       { expiresIn: "7d" }
     );
-
-    const mustChangePassword = matchedUser.mustChangePassword !== false;
 
     // Log the login activity
     AuditService.createAuditRecord({
@@ -1023,11 +1087,22 @@ async function startServer() {
       entityId: matchedUser.username,
       entityName: matchedUser.name,
       action: "LOGIN",
-      severity: "Information",
-      description: `ورود موفقیت‌آمیز کاربر ${matchedUser.name} (${matchedUser.username}) به سامانه`,
-      reasonForChange: "احراز هویت موفق با کلمه عبور و تولید کلید JWT",
+      severity: mustChangePassword ? "Warning" : "Information",
+      description: mustChangePassword 
+        ? `ورود موفقیت‌آمیز کاربر ${matchedUser.name} (${matchedUser.username}) با رمز عبور پیش‌فرض - نیاز به تغییر رمز عبور`
+        : `ورود موفقیت‌آمیز کاربر ${matchedUser.name} (${matchedUser.username}) به سامانه`,
+      reasonForChange: mustChangePassword 
+        ? "احراز هویت موفق با رمز عبور پیش‌فرض - دسترسی محدود تا تغییر رمز عبور"
+        : "احراز هویت موفق با کلمه عبور و تولید کلید JWT",
       beforeData: null,
-      afterData: { username: matchedUser.username, role: matchedUser.role, name: matchedUser.name, ip: ipAddress, device: userAgent }
+      afterData: { 
+        username: matchedUser.username, 
+        role: matchedUser.role, 
+        name: matchedUser.name, 
+        ip: ipAddress, 
+        device: userAgent,
+        mustChangePassword 
+      }
     }).catch(err => console.error("Audit logging failed on login:", err));
 
     res.json({
@@ -1086,14 +1161,24 @@ async function startServer() {
       return res.status(400).json({ error: "وارد کردن کلمه عبور فعلی و جدید الزامی است" });
     }
 
-    if (newPassword === "123" || newPassword === "123456") {
-      return res.status(400).json({ error: "کلمه عبور جدید نمی‌تواند رمز پیش‌فرض باشد" });
+    // Strengthen password validation
+    const knownWeakPasswords = ["123", "123456", "password", "admin", "12345678", "qwerty", "111111"];
+    if (knownWeakPasswords.includes(newPassword.toLowerCase())) {
+      return res.status(400).json({ error: "کلمه عبور جدید نمی‌تواند رمز پیش‌فرض یا ضعیف باشد" });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: "کلمه عبور جدید باید حداقل ۶ کاراکتر باشد" });
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: "کلمه عبور جدید باید حداقل ۸ کاراکتر باشد" });
     }
 
+    // Check for password complexity (at least one letter and one number)
+    const hasLetter = /[a-zA-Z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+    if (!hasLetter || !hasNumber) {
+      return res.status(400).json({ error: "کلمه عبور جدید باید شامل حداقل یک حرف و یک عدد باشد" });
+    }
+
+    // Prevent reusing the current password
     const matchedUser = USERS_DB[username.toLowerCase()];
     if (!matchedUser) {
       return res.status(404).json({ error: "کاربر یافت نشد" });
@@ -1103,6 +1188,12 @@ async function startServer() {
 
     if (!isCurrentPasswordCorrect) {
       return res.status(400).json({ error: "کلمه عبور فعلی وارد شده نادرست است" });
+    }
+
+    // Check if new password is same as current password
+    const isSameAsCurrentPassword = verifyPassword(newPassword, matchedUser.password);
+    if (isSameAsCurrentPassword) {
+      return res.status(400).json({ error: "کلمه عبور جدید نمی‌تواند با کلمه عبور فعلی یکسان باشد" });
     }
 
     // Change the password, hash and salt it, and persist
@@ -2269,7 +2360,8 @@ async function startServer() {
       }
 
       const uSalt = generateSalt();
-      const uPassword = password || "123456";
+      // Generate secure random password if not provided
+      const uPassword = password || generateSecurePassword(16);
       const newUser = {
         username: username,
         name: name,
@@ -2284,6 +2376,14 @@ async function startServer() {
 
       USERS_DB[key] = newUser;
       saveUsersDb();
+
+      // Log the generated password if it was auto-generated
+      if (!password) {
+        console.warn(`[SECURITY] New user '${username}' created with auto-generated password.`);
+        console.warn(`[SECURITY] Generated password: ${uPassword}`);
+        console.warn(`[SECURITY] User MUST change this password on first login.`);
+        console.warn(`[SECURITY] This password will not be displayed again. Please save it securely.`);
+      }
 
       // Log creation to Audit Trail
       const now = new Date();
