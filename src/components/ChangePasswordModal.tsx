@@ -37,13 +37,23 @@ export function ChangePasswordModal({
       return;
     }
 
-    if (newPassword === '123' || newPassword === '123456') {
-      setError('کلمه عبور جدید نمی‌تواند رمز پیش‌فرض باشد.');
+    // Check for weak passwords
+    const knownWeakPasswords = ['123', '123456', 'password', 'admin', '12345678', 'qwerty', '111111'];
+    if (knownWeakPasswords.includes(newPassword.toLowerCase())) {
+      setError('کلمه عبور جدید نمی‌تواند رمز پیش‌فرض یا ضعیف باشد.');
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('کلمه عبور جدید باید حداقل ۶ کاراکتر باشد.');
+    if (newPassword.length < 8) {
+      setError('کلمه عبور جدید باید حداقل ۸ کاراکتر باشد.');
+      return;
+    }
+
+    // Check for password complexity
+    const hasLetter = /[a-zA-Z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+    if (!hasLetter || !hasNumber) {
+      setError('کلمه عبور جدید باید شامل حداقل یک حرف و یک عدد باشد.');
       return;
     }
 
