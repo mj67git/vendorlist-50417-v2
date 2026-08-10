@@ -1,4 +1,5 @@
 import express from "express";
+import helmet from "helmet";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
@@ -892,6 +893,7 @@ function requireAuth(req: any, res: any, next: any) {
 
 async function startServer() {
   const app = express();
+  app.use(helmet());
   app.use(express.json({ limit: '10mb' }));
 
   // --- API Routes ---
