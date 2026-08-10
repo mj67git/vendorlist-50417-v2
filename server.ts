@@ -2046,6 +2046,10 @@ async function startServer() {
   // Delete vendor (Unified Database)
   app.delete("/api/vendors/:id", requireAuth, async (req: any, res) => {
     try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "عدم دسترسی: حذف تامین‌کننده/سورس فقط برای مدیران سیستم مجاز است." });
+      }
+
       const { id } = req.params;
       const current = await getVendorById(id);
       if (!current) {
