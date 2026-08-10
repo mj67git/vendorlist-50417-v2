@@ -2258,6 +2258,10 @@ async function startServer() {
 
   app.post("/api/users", requireAuth, async (req: any, res) => {
     try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "عدم دسترسی: ایجاد کاربر جدید فقط برای مدیران سیستم مجاز است." });
+      }
+
       const { username, name, role, password, permissions, reasonForChange } = req.body;
       if (!username || !name || !role) {
         return res.status(400).json({ error: "فیلدهای username، name و role الزامی هستند." });
@@ -2318,6 +2322,10 @@ async function startServer() {
 
   app.patch("/api/users/:username", requireAuth, async (req: any, res) => {
     try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "عدم دسترسی: ویرایش اطلاعات کاربران فقط برای مدیران سیستم مجاز است." });
+      }
+
       const targetUsername = req.params.username.toLowerCase();
       const current = USERS_DB[targetUsername];
       if (!current) {
@@ -2366,6 +2374,10 @@ async function startServer() {
 
   app.delete("/api/users/:username", requireAuth, async (req: any, res) => {
     try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "عدم دسترسی: حذف کاربران فقط برای مدیران سیستم مجاز است." });
+      }
+
       const targetUsername = req.params.username.toLowerCase();
       const current = USERS_DB[targetUsername];
       if (!current) {
@@ -2410,6 +2422,10 @@ async function startServer() {
 
   app.put("/api/users/:username/role", requireAuth, async (req: any, res) => {
     try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "عدم دسترسی: تغییر سمت کاربران فقط برای مدیران سیستم مجاز است." });
+      }
+
       const targetUsername = req.params.username.toLowerCase();
       const current = USERS_DB[targetUsername];
       if (!current) {
@@ -2457,6 +2473,10 @@ async function startServer() {
 
   app.put("/api/users/:username/permissions", requireAuth, async (req: any, res) => {
     try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "عدم دسترسی: تغییر مجوزهای کاربران فقط برای مدیران سیستم مجاز است." });
+      }
+
       const targetUsername = req.params.username.toLowerCase();
       const current = USERS_DB[targetUsername];
       if (!current) {
